@@ -42,6 +42,7 @@ public class WorldInterface extends BaseInterface {
     private final TETile[][] tiles;
     private final HashMap<Character, Direction> directionKeyMap;
     private boolean inQueryCommandMode;
+    private boolean inEndingDialogMode;
     private final StringBuilder inputCommandSB;
 
     private class RefreshTask extends TimerTask {
@@ -99,6 +100,7 @@ public class WorldInterface extends BaseInterface {
         directionKeyMap.put('s', Direction.BOTTOM);
         directionKeyMap.put('a', Direction.LEFT);
         inQueryCommandMode = false;
+        inEndingDialogMode = false;
         inputCommandSB.setLength(0);
         if (!config.hideInterface) {
             StdDraw.setCanvasSize(width(), height());
@@ -142,6 +144,31 @@ public class WorldInterface extends BaseInterface {
         final double STATUS_BAR_BOTTOM_LINE_Y = maxY - STATUS_BAR_ROW_COUNT;
         StdDraw.line(minX, STATUS_BAR_BOTTOM_LINE_Y, maxX, STATUS_BAR_BOTTOM_LINE_Y);
         StdDraw.show();
+    }
+
+    private void showEndingDialog(String msg) {
+        if (config.hideInterface) {
+            return;
+        }
+        // Draw dialog background.
+        final Color DIALOG_BK_COLOR = Color.BLACK;
+        StdDraw.setPenColor(DIALOG_BK_COLOR);
+        double dialogWidth = (double) (maxX - minX + 1) / 3;
+        double dialogHeight = (double) (maxY - minY + 1) / 2;
+        double dialogCenterX = minX + (maxX - minX + 1 - dialogWidth) / 2 + (dialogWidth / 2);
+        double dialogCenterY = maxY - (maxY - minY + 1 - dialogHeight) / 2 - (dialogHeight / 2);
+        StdDraw.filledRectangle(dialogCenterX, dialogCenterY, dialogWidth / 2, dialogHeight / 2);
+        // Draw msg text
+        final Color DIALOG_PEN_COLOR = Color.WHITE;
+        StdDraw.setPenColor(DIALOG_PEN_COLOR);
+        final Font DIALOG_TEXT_FONT = new Font("Monaco", Font.BOLD, tileSize - 2);
+        StdDraw.setFont(DIALOG_TEXT_FONT);
+        StdDraw.text(dialogCenterX, dialogCenterY, msg);
+        // Draw exit button
+        StdDraw.text(dialogCenterX, dialogCenterY - 1, "press \"" + QUIT_GAME_COMMAND + "\" to exit game");
+        StdDraw.show();
+        // Update status
+        inEndingDialogMode = true;
     }
 
     private void showWorldTiles() {
@@ -206,6 +233,11 @@ public class WorldInterface extends BaseInterface {
                         System.out.println(TETile.toString(world.tiles()));
                         System.exit(0);
                     }
+                } if (inEndingDialogMode) {
+                    if (gotKey == QUIT_GAME_COMMAND) {
+                        System.out.println(TETile.toString(world.tiles()));
+                        System.exit(0);
+                    }
                 } else {
                     if (gotKey == QUERY_COMMAND_KEY) {
                         inQueryCommandMode = true;
@@ -213,7 +245,11 @@ public class WorldInterface extends BaseInterface {
                     } else if (directionKeyMap.containsKey(gotKey)) {
                         Direction moveDirection = directionKeyMap.get(gotKey);
                         world.moveUser(moveDirection);
-                        showWorldTiles();
+                        if (world.foundGoal()) {
+                            showEndingDialog("Congratulation! You find the treasure!");
+                        } else {
+                            showWorldTiles();
+                        }
                     }
                 }
             }

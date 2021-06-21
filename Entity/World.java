@@ -16,6 +16,7 @@ public class World implements Serializable {
     private final TETile CLOSED_DOOR_TILE = Tileset.LOCKED_DOOR;
     private final TETile OPENED_DOOR_TILE = Tileset.UNLOCKED_DOOR;
     private final TETile AVATAR_TILE = Tileset.AVATAR;
+    private final TETile GOAL_TILE = new TETile('▒', Color.yellow, Color.black, "goal");
     private final int width; // Width of this world.
     private final int height; // Height of this world.
     private final TETile[][] tiles; // Tiles constructing this world.
@@ -23,6 +24,7 @@ public class World implements Serializable {
     private final RectRooms rooms; // Rooms in this world.
     private final Hallways hallWays; // Hallways in this world.
     private final Point userPosition; // Position of user in world.
+    private final Point goal; // The goal of the world.
 
     public World (int w, int h) {
         if (w <= 0) {
@@ -40,6 +42,7 @@ public class World implements Serializable {
         this.rooms = new RectRooms();
         this.hallWays = new Hallways();
         this.userPosition = new Point(0, 0);
+        this.goal = new Point(0, 0);
 
         init();
     }
@@ -57,6 +60,8 @@ public class World implements Serializable {
         hallWays.clear();
         userPosition.x = 0;
         userPosition.y = 0;
+        goal.x = 0;
+        goal.y = 0;
     }
 
     /**
@@ -110,6 +115,23 @@ public class World implements Serializable {
     }
 
     /**
+     * Put gaol at randomly choose room.
+     */
+    private void randGoal(long seed) {
+        if (rooms.size() == 0) {
+            return;
+        }
+        Random random = new Random((int)Math.sqrt(seed));
+        int randRoomIdx = random.nextInt(rooms.size());
+        RectRoom room = rooms.get(randRoomIdx);
+        Rectangle innerSpace = room.innerShape();
+        int randX = innerSpace.leftBottomCorner.x + random.nextInt(innerSpace.width);
+        int randY = innerSpace.leftBottomCorner.y + random.nextInt(innerSpace.height);
+        goal.x = randX;
+        goal.y = randY;
+    }
+
+    /**
      * Connect rooms in the world by hallways.
      */
     private void connectRooms() {
@@ -117,7 +139,7 @@ public class World implements Serializable {
             throw new IllegalArgumentException("Cannot connect null rooms.");
         }
         hallWays.clear();
-        ArrayHeapMinPQ<RectRoom> roomsMinPQ = new ArrayHeapMinPQ<>();
+        ArrayHeapMinPQ<RectRoom> roomsMinPQ = new ArrayHeapMinPQ<RectRoom>();
         for (RectRoom room: rooms) {
             roomsMinPQ.add(room, Double.MAX_VALUE);
         }
@@ -168,10 +190,12 @@ public class World implements Serializable {
     public void randWorld(long seed) {
         init();
         randRooms(seed);
-        randUser(seed);
         connectRooms();
+        randUser(seed);
+        randGoal(seed);
         rooms.fill(tiles);
         hallWays.fill(tiles, blocks, FLOOR_TILE, WALL_TILE);
+        tiles[goal.x][goal.y] = GOAL_TILE;
     }
 
     /**
@@ -186,6 +210,8 @@ public class World implements Serializable {
         }
         // Fill user.
         result[userPosition.x][userPosition.y] = AVATAR_TILE;
+        // Fill goal
+        result[goal.x][goal.y] = GOAL_TILE;
         return result;
     }
 
@@ -245,5 +271,9 @@ public class World implements Serializable {
         }
         userPosition.x = newUserX;
         userPosition.y = newUserY;
+    }
+
+    public boolean foundGoal() {
+        return this.userPosition.equals(this.goal);
     }
 }

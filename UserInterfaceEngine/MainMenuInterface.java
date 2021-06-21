@@ -37,7 +37,7 @@ public class MainMenuInterface extends BaseInterface {
         StdDraw.setPenColor(PEN_COLOR);
         final int TITLE_X = width() / 2;
         final int TITLE_Y = (height() * 3) / 4;
-        final String TITLE = "CS61B BYOW";
+        final String TITLE = "BYOW";
         StdDraw.text(TITLE_X, TITLE_Y, TITLE);
         // Draw menu items.
         final Font MENU_ITEM_FONT = new Font("Monaco", Font.BOLD, 20);
